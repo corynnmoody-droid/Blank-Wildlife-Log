@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wildlife Sighting Log</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; padding: 1.5rem 1rem; max-width: 700px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 2px; }
+  #count-label { font-size: 13px; color: #666; margin-bottom: 1rem; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+  button { cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 14px; padding: 7px 14px; font-family: inherit; }
+  button:hover { background: #f0f0f0; }
+  .btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .btn-primary:hover { background: #333; }
+  .btn-add { display: flex; align-items: center; gap: 6px; }
+  .filters { display: flex; gap: 6px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .filter-btn { font-size: 13px; padding: 6px 12px; }
+  .filter-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .form-panel { display: none; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
+  input, select, textarea { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; font-size: 14px; font-family: inherit; background: #fafafa; }
+  textarea { min-height: 60px; resize: vertical; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  .card { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .card-title { font-weight: 500; font-size: 15px; }
+  .card-meta { font-size: 13px; color: #777; margin-top: 3px; }
+  .card-notes { font-size: 13px; color: #333; margin-top: 8px; line-height: 1.5; }
+  .card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .card-actions button { padding: 5px 8px; font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; margin-left: 6px; }
+  .badge-confirmed { background: #e6f7f0; color: #1a7a4a; }
+  .badge-likely { background: #e6f0ff; color: #1a4aaa; }
+  .badge-unsure { background: #fff7e0; color: #8a6200; }
+  .type-tag { font-size: 12px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .empty { text-align: center; padding: 2rem; color: #999; font-size: 14px; }
+  @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="top-row">
+  <div>
+    <h1>Wildlife Sighting Log</h1>
+    <p id="count-label">Loading...</p>
+  </div>
+  <button class="btn-add btn-primary" id="add-btn">+ Add sighting</button>
+</div>
+
+<div class="filters" id="filter-row">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="Bird">🪶 Birds</button>
+  <button class="filter-btn" data-filter="Dragonfly">🪲 Dragonflies</button>
+  <button class="filter-btn" data-filter="Insect">🦟 Insects</button>
+  <button class="filter-btn" data-filter="Mammal">🐾 Mammals</button>
+  <button class="filter-btn" data-filter="Reptile">🦎 Reptiles</button>
+</div>
+
+<div class="form-panel" id="form-panel">
+  <div style="margin-bottom: 12px;">
+    <label>Type</label>
+    <select id="f-type">
+      <option value="Bird">Bird</option>
+      <option value="Dragonfly">Dragonfly</option>
+      <option value="Insect">Insect</option>
+      <option value="Mammal">Mammal</option>
+      <option value="Reptile">Reptile</option>
+    </select>
+  </div>
+  <div class="form-grid">
+    <div><label>Species</label><input type="text" id="f-species" placeholder="e.g. Northern Cardinal" /></div>
+    <div><label>Date</label><input type="date" id="f-date" /></div>
+  </div>
+  <div class="form-grid">
+    <div><label>Location</label><input type="text" id="f-location" placeholder="e.g. Backyard" /></div>
+    <div>
+      <label>Confidence</label>
+      <select id="f-confidence">
+        <option value="Confirmed">Confirmed</option>
+        <option value="Likely">Likely</option>
+        <option value="Unsure">Unsure / possible ID</option>
+      </select>
+    </div>
+  </div>
+  <div><label>Notes</label><textarea id="f-notes" placeholder="Field marks, behavior, anything notable..."></textarea></div>
+  <div class="form-actions">
+    <button id="cancel-btn">Cancel</button>
+    <button class="btn-primary" id="save-btn">Save sighting</button>
+  </div>
+</div>
+
+<div id="entries-list"></div>
+<div class="empty" id="empty-state" style="display:none;">No sightings logged yet — add your first one above!</div>
+
+<script>
+(function() {
+  const SEED = [];
+
+  let entries = [];
+  let editingId = null;
+  let activeFilter = 'all';
+
+  const listEl = document.getElementById('entries-list');
+  const emptyEl = document.getElementById('empty-state');
+  const countLabel = document.getElementById('count-label');
+  const formPanel = document.getElementById('form-panel');
+  const addBtn = document.getElementById('add-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
+  const saveBtn = document.getElementById('save-btn');
+  const fType = document.getElementById('f-type');
+  const fSpecies = document.getElementById('f-species');
+  const fDate = document.getElementById('f-date');
+  const fLocation = document.getElementById('f-location');
+  const fConfidence = document.getElementById('f-confidence');
+  const fNotes = document.getElementById('f-notes');
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  function load() {
+    try {
+      const raw = localStorage.getItem('wildlife_log');
+      if (raw) {
+        // Load saved entries — never overwrite them with seed data
+        entries = JSON.parse(raw);
+      } else {
+        // First time: use seed as starting point (deep copy so seed is never mutated)
+        entries = JSON.parse(JSON.stringify(SEED));
+        save();
+      }
+    } catch(e) {
+      entries = JSON.parse(JSON.stringify(SEED));
+      save();
+    }
+    render();
+  }
+
+  function save() {
+    try { localStorage.setItem('wildlife_log', JSON.stringify(entries)); } catch(e) {}
+  }
+
+  function formatDate(d) {
+    if (!d) return 'Date unknown';
+    const p = d.split('-');
+    const dt = new Date(+p[0], +p[1]-1, +p[2]);
+    return dt.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function badge(c) {
+    const cls = c === 'Confirmed' ? 'badge-confirmed' : c === 'Likely' ? 'badge-likely' : 'badge-unsure';
+    return '<span class="badge ' + cls + '">' + c + '</span>';
+  }
+
+  function typeLabel(t) {
+    if (t === 'Dragonfly') return '🪲 Dragonfly';
+    if (t === 'Insect') return '🦟 Insect';
+    if (t === 'Mammal') return '🐾 Mammal';
+    if (t === 'Reptile') return '🦎 Reptile';
+    return '🪶 Bird';
+  }
+
+  function esc(s) {
+    const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+  }
+
+  function render() {
+    document.querySelectorAll('.filter-btn').forEach(function(b) {
+      b.classList.toggle('active', b.getAttribute('data-filter') === activeFilter);
+    });
+
+    const filtered = activeFilter === 'all' ? entries : entries.filter(function(e) { return e.type === activeFilter; });
+    const sorted = filtered.slice().sort(function(a,b) {
+      if (!a.date) return 1; if (!b.date) return -1;
+      return b.date.localeCompare(a.date);
+    });
+
+    const bc = entries.filter(function(e){return e.type==='Bird';}).length;
+    const dc = entries.filter(function(e){return e.type==='Dragonfly';}).length;
+    const ic = entries.filter(function(e){return e.type==='Insect';}).length;
+    const mc = entries.filter(function(e){return e.type==='Mammal';}).length;
+    const rc = entries.filter(function(e){return e.type==='Reptile';}).length;
+    countLabel.textContent = bc + ' bird' + (bc===1?'':'s') + '  ·  ' + dc + ' dragonfly' + (dc===1?'':'s') + '  ·  ' + ic + ' insect' + (ic===1?'':'s') + (mc ? '  ·  ' + mc + ' mammal' + (mc===1?'':'s') : '') + (rc ? '  ·  ' + rc + ' reptile' + (rc===1?'':'s') : '');
+
+    if (!sorted.length) { listEl.innerHTML=''; emptyEl.style.display='block'; return; }
+    emptyEl.style.display = 'none';
+
+    listEl.innerHTML = sorted.map(function(e) {
+      return '<div class="card">' +
+        '<div class="card-top">' +
+          '<div style="min-width:0;">' +
+            '<div class="type-tag">' + typeLabel(e.type) + '</div>' +
+            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">' +
+              '<span class="card-title">' + esc(e.species) + '</span>' + badge(e.confidence) +
+            '</div>' +
+            '<div class="card-meta">📅 ' + formatDate(e.date) + (e.location ? '  ·  📍 ' + esc(e.location) : '') + '</div>' +
+            (e.notes ? '<div class="card-notes">' + esc(e.notes) + '</div>' : '') +
+          '</div>' +
+          '<div class="card-actions">' +
+            '<button data-edit="' + e.id + '" title="Edit">✏️</button>' +
+            '<button data-del="' + e.id + '" title="Delete">🗑️</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    listEl.querySelectorAll('[data-edit]').forEach(function(b) {
+      b.addEventListener('click', function() {
+        const entry = entries.find(function(x){return x.id===b.getAttribute('data-edit');});
+        if (entry) openForm(entry);
+      });
+    });
+    listEl.querySelectorAll('[data-del]').forEach(function(b) {
+      b.addEventListener('click', function() {
+        if (!confirm('Delete this sighting?')) return;
+        entries = entries.filter(function(x){return x.id!==b.getAttribute('data-del');});
+        save(); render();
+      });
+    });
+  }
+
+  function openForm(entry) {
+    editingId = entry ? entry.id : null;
+    fType.value = entry ? entry.type : 'Bird';
+    fSpecies.value = entry ? entry.species : '';
+    fDate.value = entry ? entry.date : todayStr;
+    fLocation.value = entry ? entry.location : '';
+    fConfidence.value = entry ? entry.confidence : 'Confirmed';
+    fNotes.value = entry ? entry.notes : '';
+    formPanel.style.display = 'block';
+    fSpecies.focus();
+  }
+
+  function closeForm() { formPanel.style.display='none'; editingId=null; }
+
+  addBtn.addEventListener('click', function(){ openForm(null); });
+  cancelBtn.addEventListener('click', closeForm);
+
+  document.querySelectorAll('.filter-btn').forEach(function(b) {
+    b.addEventListener('click', function() { activeFilter=b.getAttribute('data-filter'); render(); });
+  });
+
+  saveBtn.addEventListener('click', function() {
+    const sp = fSpecies.value.trim();
+    if (!sp) { fSpecies.focus(); return; }
+    if (editingId) {
+      const entry = entries.find(function(x){return x.id===editingId;});
+      if (entry) { entry.type=fType.value; entry.species=sp; entry.date=fDate.value; entry.location=fLocation.value.trim(); entry.confidence=fConfidence.value; entry.notes=fNotes.value.trim(); }
+    } else {
+      entries.push({ id:'u'+Date.now(), type:fType.value, species:sp, date:fDate.value, location:fLocation.value.trim(), confidence:fConfidence.value, notes:fNotes.value.trim() });
+    }
+    save(); closeForm(); render();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
